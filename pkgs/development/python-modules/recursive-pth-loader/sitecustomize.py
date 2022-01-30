@@ -7,6 +7,7 @@
   they will be processed in next iteration
 """
 
+
 import os
 import site
 import sys
@@ -33,7 +34,7 @@ for path_idx, sitedir in enumerate(sys.path):
             continue
 
         with f:
-            for n, line in enumerate(f):
+            for line in f:
                 if line.startswith("#"):
                     continue
 
@@ -42,5 +43,5 @@ for path_idx, sitedir in enumerate(sys.path):
 
                 line = line.rstrip()
                 dir, dircase = site.makepath(sitedir, line)
-                if not dircase in sys.path:
+                if dircase not in sys.path:
                     sys.path.insert(path_idx+1, dir)

@@ -11,14 +11,13 @@ def get_plist(path):
     package_attrs = {}
     with open(path, 'r') as setup:
         for line in setup:
-            if in_str and line.rstrip().endswith('"'):
-                package_attrs[current_key] = buf + line.rstrip()[:-1]
-                in_str = False
+            if in_str:
+                if line.rstrip().endswith('"'):
+                    package_attrs[current_key] = buf + line.rstrip()[:-1]
+                    in_str = False
+                else:
+                    buf += line
                 continue
-            elif in_str:
-                buf += line
-                continue
-
             if line.startswith('@'):
                 in_pack = True
                 package_name = line[1:].strip()
