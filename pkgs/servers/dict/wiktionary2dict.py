@@ -68,7 +68,7 @@ def Tokenise(s):
         elif s[i] == '}' and i+1 < len(s) and s[i+1] == '}':
             if i > last:
                 yield s[last:i]
-            if len(stack) == 0:
+            if not stack:
                 yield "}}"
                 i += 2
             elif stack[-1] == 2:
@@ -82,7 +82,7 @@ def Tokenise(s):
             else:
                 raise SyntaxError()
             last = i
-        elif s[i] == ':' or s[i] == '|':
+        elif s[i] in [':', '|']:
             if i > last:
                 yield s[last:i]
             yield Delimiter(s[i])
@@ -94,15 +94,6 @@ def Tokenise(s):
             yield Equals()
             i += 1
             last = i
-        #elif s[i] == ' ' or s[i] == '\t' or s[i] == '\n':
-        #    if i > last:
-        #        yield s[last:i]
-        #    last = i
-        #    m = re.match(r"\s+", s[i:])
-        #    assert m
-        #    yield Whitespace(m.group(0))
-        #    i += len(m.group(0))
-        #    last = i
         else:
             i += 1
     if i > last:
@@ -462,9 +453,7 @@ Parts = {
     'Usage notes': None,
     'Verbal noun': "v.n.",
 }
-PartsUsed = {}
-for p in Parts.keys():
-    PartsUsed[p] = 0
+PartsUsed = {p: 0 for p in Parts}
 
 def encode(s):
     r = e(s)
@@ -473,10 +462,7 @@ def encode(s):
 
 def dowikilink(m):
     a = m.group(1).split("|")
-    if len(a) > 1:
-        link = a[1]
-    else:
-        link = a[0]
+    link = a[1] if len(a) > 1 else a[0]
     if ':' in link:
         link = ""
     return link
@@ -487,8 +473,7 @@ def dotemplate(m):
     args = {}
     n = 0
     for a in aa:
-        am = re.match(r"(.*?)(=(.*))?", a)
-        if am:
+        if am := re.match(r"(.*?)(=(.*))?", a):
             args[am.group(1)] = am.group(3)
         else:
             n += 1
@@ -613,10 +598,7 @@ def parse(word, text):
 
 def formatFull(word, doc):
     def f(depth, section):
-        if section.heading:
-            r = "  "*(depth-1) + section.heading + "\n\n"
-        else:
-            r = ""
+        r = "  "*(depth-1) + section.heading + "\n\n" if section.heading else ""
         if section.body:
             r += dewiki(section.body, depth+1)+"\n"
         #r += "".join("  "*depth + x + "\n" for x in dewiki(section.body))
@@ -665,11 +647,6 @@ def formatBrief(word, doc):
             h = section.heading
             if not section.heading or section.heading.startswith("Etymology"):
                 posdepth += 1
-            elif section.heading in Parts:
-                #h = Parts[section.heading]
-                #if h:
-                #    h = "%s (%s)" % (word, h)
-                pass
             stack.append([h, False])
         elif depth > 0:
             stack.append([section.heading, False])
@@ -740,8 +717,7 @@ class WordHandler(WikiHandler):
     def checkPage(self, page):
         return ':' not in page
     def doPage(self, page, text):
-        m = re.match(r"#redirect\s*\[\[(.*?)\]\]", text, re.IGNORECASE)
-        if m:
+        if m := re.match(r"#redirect\s*\[\[(.*?)\]\]", text, re.IGNORECASE):
             out.write("  See <%s>" % page)
             return
         doc = parse(page, text)

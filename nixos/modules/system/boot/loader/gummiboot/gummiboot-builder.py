@@ -79,12 +79,12 @@ def remove_old_entries(gens):
     for path in glob.iglob("@efiSysMountPoint@/loader/entries/nixos-generation-[1-9]*.conf"):
         try:
             gen = int(path[slice_start:slice_end])
-            if not gen in gens:
+            if gen not in gens:
                 os.unlink(path)
         except ValueError:
             pass
     for path in glob.iglob("@efiSysMountPoint@/efi/nixos/*"):
-        if not path in known_paths:
+        if path not in known_paths:
             os.unlink(path)
 
 parser = argparse.ArgumentParser(description='Update NixOS-related gummiboot files')

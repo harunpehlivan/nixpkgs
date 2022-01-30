@@ -22,9 +22,8 @@ instance_type = "m3.medium" if args.hvm else "m1.small"
 ebs_size = 8 if args.hvm else 20
 
 
-# Start a NixOS machine in the given region.
-f = open("ebs-creator-config.nix", "w")
-f.write('''{{
+with open("ebs-creator-config.nix", "w") as f:
+    f.write('''{{
   resources.ec2KeyPairs.keypair.accessKeyId = "logicblox-dev";
   resources.ec2KeyPairs.keypair.region = "{0}";
 
@@ -37,8 +36,6 @@ f.write('''{{
     }};
 }}
 '''.format(args.region, ebs_size))
-f.close()
-
 db = StateFile(get_default_state_file())
 try:
     depl = db.open_deployment("ebs-creator")
@@ -167,10 +164,9 @@ print >> sys.stderr, "making image public..."
 image = m._conn.get_all_images(image_ids=[ami_id])[0]
 image.set_launch_permissions(user_ids=[], group_names=["all"])
 
-# Do a test deployment to make sure that the AMI works.
-f = open("ebs-test.nix", "w")
-f.write(
-    '''
+with open("ebs-test.nix", "w") as f:
+    f.write(
+        '''
     {{
       network.description = "NixOS EBS test";
 
@@ -188,8 +184,6 @@ f.write(
       }};
     }}
     '''.format(args.region, ami_id, instance_type))
-f.close()
-
 test_depl = db.create_deployment()
 test_depl.auto_response = "y"
 test_depl.name = "ebs-creator-test"
@@ -197,28 +191,17 @@ test_depl.nix_exprs = [os.path.abspath("./ebs-test.nix")]
 test_depl.deploy(create_only=True)
 test_depl.machines['machine'].run_command("nixos-version")
 
-if args.hvm:
-    image_type = 'hvm'
-else:
-    image_type = 'ebs'
-
-# Log the AMI ID.
-f = open("{0}.{1}.ami-id".format(args.region, image_type), "w")
-f.write("{0}".format(ami_id))
-f.close()
-
+image_type = 'hvm' if args.hvm else 'ebs'
+with open("{0}.{1}.ami-id".format(args.region, image_type), "w") as f:
+    f.write("{0}".format(ami_id))
 for dest in [ 'us-east-1', 'us-west-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'sa-east-1']:
     if args.region != dest:
         print >> sys.stderr, "copying image from region {0} to {1}".format(args.region, dest)
         conn = boto.ec2.connect_to_region(dest)
         copy_image = conn.copy_image(args.region, ami_id, ami_name, description=None, client_token=None)
 
-        # Log the AMI ID.
-        f = open("{0}.{1}.ami-id".format(dest, image_type), "w")
-        f.write("{0}".format(copy_image.image_id))
-        f.close()
-
-
+        with open("{0}.{1}.ami-id".format(dest, image_type), "w") as f:
+            f.write("{0}".format(copy_image.image_id))
 if not args.keep:
     test_depl.destroy_resources()
     test_depl.delete()
